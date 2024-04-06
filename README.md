@@ -56,7 +56,7 @@ Perry is a command-line interface (CLI) tool that simplifies the process of init
    - For Unix-based systems:
 
      ```bash
-     ./install.sh
+     bash ./install.sh
      ```
 
    - For Windows:
