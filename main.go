@@ -17,6 +17,7 @@ func main() {
 	projectName := getUserInput("Enter project name: ")
 
 	// Step 2: Download template repository zip
+	fmt.Println("Setting up...")
 	downloadURL := "https://github.com/ralphvw/go-template/archive/main.zip"
 	templateZip := "template.zip"
 	err := downloadFile(templateZip, downloadURL)
@@ -26,10 +27,10 @@ func main() {
 	}
 	defer os.Remove(templateZip)
 
-	// Step 3: Extract template repository zip
-	err = unzip(templateZip, projectName)
+	// Step 3: Extract template repository zip and rename root folder
+	err = unzipAndRename(templateZip, projectName)
 	if err != nil {
-		fmt.Println("Error extracting template repository:", err)
+		fmt.Println("Error extracting and renaming template repository:", err)
 		os.Exit(1)
 	}
 
@@ -77,37 +78,48 @@ func downloadFile(filepath string, url string) error {
 	return err
 }
 
-// unzip extracts a zip file to the specified directory
-func unzip(src, dest string) error {
+// unzipAndRename extracts a zip file to the current directory and renames the root folder to the project name
+func unzipAndRename(src, projectName string) error {
 	r, err := zip.OpenReader(src)
 	if err != nil {
 		return err
 	}
 	defer r.Close()
 
+	// Extract files to the current directory
 	for _, f := range r.File {
 		rc, err := f.Open()
 		if err != nil {
 			return err
 		}
+		defer rc.Close()
 
-		path := filepath.Join(dest, f.Name)
+		// Determine the destination path
+		path := filepath.Join(projectName, strings.TrimPrefix(f.Name, "go-template-main"))
+
 		if f.FileInfo().IsDir() {
 			os.MkdirAll(path, f.Mode())
 		} else {
 			os.MkdirAll(filepath.Dir(path), os.ModePerm)
-			f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
+			fw, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
 			if err != nil {
 				return err
 			}
-			_, err = io.Copy(f, rc)
+			defer fw.Close()
+
+			_, err = io.Copy(fw, rc)
 			if err != nil {
 				return err
 			}
-			f.Close()
 		}
-		rc.Close()
 	}
+
+	// Rename the root directory to the project name
+	// err = os.Rename(filepath.Join(projectName, "go-template-main"), projectName)
+	// if err != nil {
+	// 	return err
+	// }
+
 	return nil
 }
 
